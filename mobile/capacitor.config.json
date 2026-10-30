@@ -1,0 +1,9 @@
+{
+  "appId": "fr.sitenor.terrain",
+  "appName": "Terrain SATREL/SITENOR",
+  "webDir": "www",
+  "backgroundColor": "#1f4e63",
+  "plugins": {
+    "SystemBars": { "insetsHandling": "css" }
+  }
+}
