@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Tableau de bord SATREL / SITENOR</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f3f1ea; --surface:#ffffff; --surface-2:#eae6d8; --ink:#1c1a15; --ink-dim:#6b6558; --ink-faint:#948d7c;
+    --line:#dcd6c4; --line-strong:#c7bfa8; --accent:#1f4e63; --accent-ink:#ffffff; --accent-soft:#dbe8ec; --accent-soft-ink:#163b4c;
+    --ok:#2f7d4f; --ok-soft:#dcefe1; --warn:#b5451c; --warn-soft:#f6dfd3; --muted:#8a8272; --muted-soft:#e7e2d3;
+    --shadow:0 1px 2px rgba(28,26,21,.06), 0 6px 16px -8px rgba(28,26,21,.18); --radius:14px; --radius-sm:9px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14181a; --surface:#1c2225; --surface-2:#232a2d; --ink:#eef0ea; --ink-dim:#9aa39c; --ink-faint:#717b76;
+      --line:#2c3336; --line-strong:#3a4245; --accent:#6db3f0; --accent-ink:#0d1c21; --accent-soft:#14283d; --accent-soft-ink:#b5d9f7;
+      --ok:#5cbd83; --ok-soft:#1c3327; --warn:#e8875e; --warn-soft:#3a2419; --muted:#8b9490; --muted-soft:#262d2a;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 20px -10px rgba(0,0,0,.5);
+    }
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3{ font-family:'Barlow Condensed','IBM Plex Sans',sans-serif; text-transform:uppercase; letter-spacing:.02em; margin:0; font-weight:700; }
+  .mono{ font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
+  button,input,select{ font-family:inherit; font-size:14px; color:var(--ink); }
+  .hidden{ display:none !important; }
+  .wrap{ max-width:1200px; margin:0 auto; padding:0 20px; }
+
+  /* Login */
+  #login{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .login-card{ width:100%; max-width:380px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:28px; }
+  .login-card h1{ font-size:28px; }
+  .login-card p{ color:var(--ink-dim); font-size:14px; margin:6px 0 20px; }
+  .login-card label{ display:block; font-size:13px; font-weight:600; margin:14px 0 6px; }
+  .login-card input{ width:100%; padding:11px 12px; border:1px solid var(--line-strong); border-radius:var(--radius-sm); background:var(--surface-2); }
+  .login-card input:focus, select:focus, .filters input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .msg-err{ color:var(--warn); background:var(--warn-soft); padding:10px 12px; border-radius:var(--radius-sm); font-size:13px; margin-top:14px; }
+
+  .btn{ appearance:none; border:none; cursor:pointer; border-radius:var(--radius-sm); padding:10px 16px; font-weight:600; background:var(--accent); color:var(--accent-ink); min-height:40px; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-ghost{ background:var(--surface-2); color:var(--ink); border:1px solid var(--line-strong); }
+  .btn-danger{ background:transparent; color:var(--warn); border:1px solid var(--warn); }
+  .btn-block{ width:100%; margin-top:20px; }
+
+  /* Header */
+  header.top{ background:var(--surface); border-bottom:1px solid var(--line); }
+  header.top .wrap{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:14px; padding-bottom:14px; flex-wrap:wrap; }
+  header.top h1{ font-size:24px; }
+  .who{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-dim); }
+  .role{ font-family:'IBM Plex Mono',monospace; font-size:11px; padding:3px 8px; border-radius:99px; background:var(--accent-soft); color:var(--accent-soft-ink); }
+
+  /* Filters */
+  .filters{ display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin:20px 0 16px; }
+  .filters .f{ display:flex; flex-direction:column; gap:4px; }
+  .filters label{ font-size:12px; color:var(--ink-dim); font-weight:600; }
+  .filters input, .filters select{ padding:9px 10px; border:1px solid var(--line-strong); border-radius:var(--radius-sm); background:var(--surface); min-height:40px; }
+  .filters .chk{ flex-direction:row; align-items:center; gap:8px; min-height:40px; }
+  .filters .chk input{ width:18px; height:18px; min-height:0; }
+  .filters .chk label{ font-size:14px; color:var(--ink); }
+
+  /* KPI */
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:16px; }
+  .kpi{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow); }
+  .kpi .lbl{ font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-dim); font-weight:600; }
+  .kpi .num{ font-family:'IBM Plex Mono',monospace; font-size:32px; font-weight:600; margin-top:4px; }
+  .kpi.warn .num{ color:var(--warn); } .kpi.ok .num{ color:var(--ok); }
+
+  /* Charts */
+  .charts{ display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; margin-bottom:16px; }
+  .panel{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow); }
+  .panel h2{ font-size:17px; margin-bottom:10px; }
+  .chart-box{ position:relative; height:260px; }
+  .empty-note{ color:var(--ink-faint); font-size:13.5px; padding:40px 0; text-align:center; }
+
+  /* Table */
+  .table-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .table-scroll{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:14px; }
+  th{ text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-dim); padding:10px 10px; border-bottom:1px solid var(--line-strong); white-space:nowrap; cursor:pointer; user-select:none; }
+  th.sorted::after{ content:' ▾'; } th.sorted.asc::after{ content:' ▴'; }
+  td{ padding:10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr.row{ cursor:pointer; } tr.row:hover td{ background:var(--surface-2); }
+  .badge{ display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px; white-space:nowrap; }
+  .badge.ok{ background:var(--ok-soft); color:var(--ok); } .badge.warn{ background:var(--warn-soft); color:var(--warn); } .badge.so{ background:var(--muted-soft); color:var(--muted); } .badge.acc{ background:var(--accent-soft); color:var(--accent-soft-ink); }
+  .more{ text-align:center; margin-top:12px; }
+  .foot{ color:var(--ink-faint); font-size:12px; padding:24px 0 40px; text-align:center; }
+
+  /* Report */
+  #reportView{ position:fixed; inset:0; z-index:50; background:var(--bg); overflow:auto; }
+  .report{ max-width:820px; margin:0 auto; padding:20px; }
+  .report-bar{ display:flex; gap:8px; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; }
+  .sheet{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:28px; box-shadow:var(--shadow); }
+  .sheet .brand{ font-family:'Barlow Condensed',sans-serif; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); font-weight:700; font-size:14px; }
+  .sheet h1{ font-size:32px; margin:4px 0 14px; }
+  .meta{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px 20px; margin-bottom:18px; }
+  .meta div{ font-size:13.5px; } .meta b{ display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-dim); font-weight:600; }
+  .summary{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+  .summary .tile{ flex:1 1 110px; background:var(--surface-2); border-radius:var(--radius-sm); padding:10px 12px; text-align:center; }
+  .summary .tile .n{ font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600; } .summary .tile .l{ font-size:11px; text-transform:uppercase; color:var(--ink-dim); letter-spacing:.04em; }
+  .tile.ok .n{ color:var(--ok); } .tile.warn .n{ color:var(--warn); }
+  .todo{ background:var(--warn-soft); color:var(--warn); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:18px; font-size:14px; }
+  .todo h3{ font-size:15px; margin-bottom:6px; } .todo ul{ margin:0; padding-left:18px; }
+  .photos{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; margin-top:8px; }
+  .photos img{ width:100%; border-radius:var(--radius-sm); border:1px solid var(--line); display:block; break-inside:avoid; }
+  .sec{ margin-top:20px; break-inside:avoid; }
+  .sec h3{ font-size:17px; color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:4px; margin-bottom:4px; }
+  .kv{ display:flex; justify-content:space-between; gap:16px; padding:7px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .kv .v{ text-align:right; font-weight:500; } .kv .v.long{ text-align:left; white-space:pre-wrap; }
+  .kv.long{ flex-direction:column; gap:4px; } .kv .k{ color:var(--ink-dim); }
+  .vide{ color:var(--ink-faint); font-style:italic; font-weight:400; }
+  .cmt{ margin:4px 0 6px; padding:8px 10px; background:var(--surface-2); border-radius:var(--radius-sm); font-size:13.5px; color:var(--ink-dim); white-space:pre-wrap; }
+  .sheet-foot{ margin-top:24px; font-size:12px; color:var(--ink-faint); border-top:1px solid var(--line); padding-top:10px; }
+
+  @media (max-width:640px){ .wrap{ padding:0 12px; } .sheet{ padding:18px; } }
+  @media print{
+    body{ background:#fff; color:#000; }
+    body > *:not(#reportView){ display:none !important; }
+    #reportView{ position:static; overflow:visible; background:#fff; }
+    .report{ max-width:none; padding:0; } .report-bar{ display:none; }
+    .sheet{ border:none; box-shadow:none; padding:0; }
+    @page{ margin:14mm; }
+  }
+</style>
+</head>
+<body>
+
+<div id="setup" class="hidden" style="padding:40px 20px;text-align:center;">
+  <h1>Configuration manquante</h1>
+  <p>Renseignez <b>APPS_SCRIPT_URL</b> dans <code>config.js</code>.</p>
+</div>
+
+<div id="login" class="hidden">
+  <form class="login-card" id="loginForm">
+    <h1>Tableau de bord SATREL / SITENOR</h1>
+    <p>Accès réservé aux responsables. Saisissez le code d’accès.</p>
+    <label for="code">Code d’accès</label>
+    <input id="code" type="password" autocomplete="current-password" required>
+    <div id="loginErr" class="msg-err hidden"></div>
+    <button class="btn btn-block" id="loginBtn" type="submit">Ouvrir le tableau de bord</button>
+  </form>
+</div>
+
+<div id="app" class="hidden">
+  <header class="top"><div class="wrap">
+    <h1>Tableau de bord SATREL / SITENOR</h1>
+    <div class="who"><button class="btn btn-ghost" id="refreshBtn">Actualiser</button><button class="btn btn-ghost" id="logoutBtn">Déconnexion</button></div>
+  </div></header>
+
+  <main class="wrap">
+    <div class="filters">
+      <div class="f"><label for="fForm">Formulaire</label><select id="fForm"><option value="">Tous</option></select></div>
+      <div class="f"><label for="fFrom">Du</label><input type="date" id="fFrom"></div>
+      <div class="f"><label for="fTo">Au</label><input type="date" id="fTo"></div>
+      <div class="f" style="flex:1 1 200px;"><label for="fSearch">Recherche (chantier, client, auteur)</label><input type="search" id="fSearch" placeholder="Rechercher…"></div>
+      <div class="f chk"><input type="checkbox" id="fNc"><label for="fNc">Avec non-conformités</label></div>
+      <button class="btn btn-ghost" id="fReset">Réinitialiser</button>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="charts">
+      <div class="panel"><h2>Non-conformités par mois</h2><div class="chart-box"><canvas id="chNc"></canvas></div></div>
+      <div class="panel"><h2>Taux de conformité par mois</h2><div class="chart-box"><canvas id="chRate"></canvas></div></div>
+      <div class="panel"><h2>Non-conformités par thème</h2><div class="chart-box"><canvas id="chTheme"></canvas></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="table-head"><h2 id="tableTitle">Saisies</h2><button class="btn btn-ghost" id="csvBtn">Exporter en CSV</button></div>
+      <div class="table-scroll"><table>
+        <thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody>
+      </table></div>
+      <div class="more"><button class="btn btn-ghost hidden" id="moreBtn">Afficher plus</button></div>
+    </div>
+    <div class="foot" id="foot"></div>
+  </main>
+</div>
+
+<div id="reportView" class="hidden"></div>
+
+<script>
+"use strict";
+const CFG = window.SITENOR_CONFIG || {};
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MONTHS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+
+let CODE = null, ALL = [], VIEW = [], sortKey = 'date', sortDir = 'desc', shown = 50, charts = {};
+const PAGE = 50;
+
+function show(id, on){ $(id).classList.toggle('hidden', !on); }
+function rowDate(r){ return r.audit_date || (r.created_at || '').slice(0,10); }
+function fmtDate(iso){ if(!iso) return '—'; const p = String(iso).slice(0,10).split('-'); return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : iso; }
+function fmtDateTime(iso){ const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function monthKey(r){ return rowDate(r).slice(0,7); }
+function monthLabel(k){ const [y,m] = k.split('-'); return MONTHS[parseInt(m,10)-1] + ' ' + y; }
+function pct(good, bad){ return (good+bad) > 0 ? Math.round(good/(good+bad)*1000)/10 : null; }
+function rateBadge(rate){ if(rate == null) return '<span class="badge so">—</span>'; return '<span class="badge '+(rate>=90?'ok':rate>=70?'acc':'warn')+'">'+String(rate).replace('.',',')+' %</span>'; }
+
+/* ---------- Accès (code vérifié par le script Google) ---------- */
+async function api(body){
+  // Corps en text/plain : pas de pré-requête CORS, accepté par Apps Script.
+  const res = await fetch(CFG.APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify(Object.assign({ key: CODE }, body)) });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+function loginError(msg){ $('loginErr').textContent = msg; $('loginErr').classList.remove('hidden'); }
+
+async function boot(){
+  if(!CFG.APPS_SCRIPT_URL){ show('setup', true); return; }
+  try{ CODE = sessionStorage.getItem('sitenor_dash_code'); }catch(e){}
+  if(CODE && await loadData()) return;
+  show('login', true);
+}
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('loginBtn'); btn.disabled = true; $('loginErr').classList.add('hidden');
+  CODE = $('code').value.trim();
+  const ok = await loadData();
+  btn.disabled = false;
+  if(ok){ try{ sessionStorage.setItem('sitenor_dash_code', CODE); }catch(e){} }
+});
+$('logoutBtn').addEventListener('click', () => { try{ sessionStorage.removeItem('sitenor_dash_code'); }catch(e){} location.reload(); });
+$('refreshBtn').addEventListener('click', () => loadData());
+
+async function loadData(){
+  let out;
+  try{ out = await api({ action:'list' }); }
+  catch(e){ loginError('Connexion au serveur impossible. Vérifiez votre réseau.'); return false; }
+  if(!out.ok){
+    show('app', false); show('login', true);
+    loginError(out.error === 'code' ? 'Code d’accès incorrect.' : 'Erreur : ' + out.error);
+    return false;
+  }
+  show('login', false); show('app', true);
+  ALL = out.rows.sort((a,b) => String(b.created_at).localeCompare(String(a.created_at)));
+  const forms = {};
+  ALL.forEach(r => forms[r.form_id] = r.form_name);
+  $('fForm').innerHTML = '<option value="">Tous</option>' + Object.entries(forms).map(([id,n]) => '<option value="'+esc(id)+'">'+esc(n)+'</option>').join('');
+  apply();
+  return true;
+}
+
+/* ---------- Filters ---------- */
+['fForm','fFrom','fTo','fSearch','fNc'].forEach(id => $(id).addEventListener('input', () => { shown = PAGE; apply(); }));
+$('fReset').addEventListener('click', () => { ['fForm','fFrom','fTo','fSearch'].forEach(id => $(id).value = ''); $('fNc').checked = false; shown = PAGE; apply(); });
+
+function apply(){
+  const f = $('fForm').value, from = $('fFrom').value, to = $('fTo').value, q = $('fSearch').value.trim().toLowerCase(), nc = $('fNc').checked;
+  VIEW = ALL.filter(r => {
+    if(f && r.form_id !== f) return false;
+    const d = rowDate(r);
+    if(from && d < from) return false;
+    if(to && d > to) return false;
+    if(nc && !(r.bad > 0)) return false;
+    if(q && !((r.chantier||'') + ' ' + (r.client||'') + ' ' + (r.auteur||'')).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  renderKpis(); renderCharts(); renderTable();
+}
+
+function renderKpis(){
+  const good = VIEW.reduce((s,r) => s + r.good, 0), bad = VIEW.reduce((s,r) => s + r.bad, 0);
+  const rate = pct(good, bad), sit = VIEW.filter(r => r.form_id === 'remontee').length;
+  // « Remontées d'information » : signalements reçus du terrain
+  $('kpis').innerHTML =
+    '<div class="kpi"><div class="lbl">Saisies</div><div class="num">'+VIEW.length+'</div></div>'
+  + '<div class="kpi warn"><div class="lbl">Non-conformités</div><div class="num">'+bad+'</div></div>'
+  + '<div class="kpi ok"><div class="lbl">Taux de conformité</div><div class="num">'+(rate == null ? '—' : String(rate).replace('.',',')+' %')+'</div></div>'
+  + '<div class="kpi"><div class="lbl">Remontées d’information</div><div class="num">'+sit+'</div></div>';
+}
+
+/* ---------- Charts ---------- */
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function drawChart(id, cfg, hasData){
+  if(charts[id]){ charts[id].destroy(); delete charts[id]; }
+  const box = $(id).parentElement;
+  box.querySelector('.empty-note')?.remove();
+  $(id).style.display = hasData ? '' : 'none';
+  if(!hasData){ const d = document.createElement('div'); d.className = 'empty-note'; d.textContent = 'Pas de données pour ces filtres.'; box.appendChild(d); return; }
+  charts[id] = new Chart($(id), cfg);
+}
+function renderCharts(){
+  const ink = css('--ink-dim'), grid = css('--line'), warn = css('--warn'), accent = css('--accent');
+  Chart.defaults.font.family = "'IBM Plex Sans', sans-serif"; Chart.defaults.color = ink;
+  const scales = (extra) => ({ x:{ grid:{ display:false } }, y:Object.assign({ beginAtZero:true, grid:{ color:grid }, ticks:{ precision:0 } }, extra || {}) });
+
+  const byMonth = {};
+  VIEW.forEach(r => { const k = monthKey(r); if(!k) return; (byMonth[k] = byMonth[k] || { good:0, bad:0 }); byMonth[k].good += r.good; byMonth[k].bad += r.bad; });
+  const keys = Object.keys(byMonth).sort(), labels = keys.map(monthLabel);
+
+  drawChart('chNc', { type:'bar', data:{ labels, datasets:[{ label:'Non-conformités', data:keys.map(k => byMonth[k].bad), backgroundColor:warn, borderRadius:4 }] },
+    options:{ maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:scales() } }, keys.length > 0);
+
+  drawChart('chRate', { type:'line', data:{ labels, datasets:[{ label:'Taux de conformité (%)', data:keys.map(k => pct(byMonth[k].good, byMonth[k].bad)), borderColor:accent, backgroundColor:accent, tension:.25, spanGaps:true, pointRadius:4 }] },
+    options:{ maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:scales({ min:0, max:100, ticks:{ callback:v => v+' %' } }) } }, keys.some(k => pct(byMonth[k].good, byMonth[k].bad) != null));
+
+  const byTheme = {};
+  VIEW.forEach(r => (r.payload?.sections || []).forEach(s => (s.rows || []).forEach(row => { if(row.status === 'nc') byTheme[s.title] = (byTheme[s.title] || 0) + 1; })));
+  const themes = Object.entries(byTheme).sort((a,b) => b[1]-a[1]).slice(0, 10);
+  drawChart('chTheme', { type:'bar', data:{ labels:themes.map(t => t[0]), datasets:[{ label:'Non-conformités', data:themes.map(t => t[1]), backgroundColor:warn, borderRadius:4 }] },
+    options:{ indexAxis:'y', maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true, grid:{ color:grid }, ticks:{ precision:0 } }, y:{ grid:{ display:false } } } } }, themes.length > 0);
+}
+
+/* ---------- Table ---------- */
+const COLS = [
+  ['date','Date'], ['form','Formulaire'], ['chantier','Chantier'], ['client','Client'], ['auteur','Auteur'], ['good','Conformes'], ['bad','NC'], ['rate','Taux']
+];
+function sortVal(r, k){
+  switch(k){ case 'date': return rowDate(r); case 'form': return r.form_name || ''; case 'chantier': return (r.chantier||'').toLowerCase(); case 'client': return (r.client||'').toLowerCase();
+    case 'auteur': return (r.auteur||'').toLowerCase(); case 'good': return r.good; case 'bad': return r.bad; case 'rate': return r.rate == null ? -1 : Number(r.rate); }
+}
+function renderTable(){
+  $('tableTitle').textContent = 'Saisies (' + VIEW.length + ')';
+  $('thead').innerHTML = COLS.map(([k,l]) => '<th data-k="'+k+'" class="'+(sortKey===k ? 'sorted'+(sortDir==='asc'?' asc':'') : '')+'">'+l+'</th>').join('');
+  $('thead').querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+    const k = th.dataset.k; if(sortKey === k) sortDir = sortDir === 'asc' ? 'desc' : 'asc'; else { sortKey = k; sortDir = 'desc'; }
+    renderTable();
+  }));
+  const sorted = VIEW.slice().sort((a,b) => { const x = sortVal(a,sortKey), y = sortVal(b,sortKey); return (x < y ? -1 : x > y ? 1 : 0) * (sortDir === 'asc' ? 1 : -1); });
+  $('tbody').innerHTML = sorted.slice(0, shown).map(r =>
+    '<tr class="row" data-id="'+esc(r.id)+'"><td class="mono">'+fmtDate(rowDate(r))+'</td><td>'+esc(r.form_name)+((r.payload?.photos || []).length ? ' <span class="badge acc">'+r.payload.photos.length+' photo'+(r.payload.photos.length > 1 ? 's' : '')+'</span>' : '')+'</td><td>'+esc(r.chantier||'—')+'</td><td>'+esc(r.client||'—')+'</td><td>'+esc(r.auteur||'—')+'</td>'
+    + '<td><span class="badge ok">'+r.good+'</span></td><td>'+(r.bad > 0 ? '<span class="badge warn">'+r.bad+'</span>' : '<span class="badge so">0</span>')+'</td><td>'+rateBadge(r.rate)+'</td></tr>'
+  ).join('') || '<tr><td colspan="8" class="empty-note">Aucune saisie.</td></tr>';
+  $('tbody').querySelectorAll('tr.row').forEach(tr => tr.addEventListener('click', () => openReport(tr.dataset.id)));
+  $('moreBtn').classList.toggle('hidden', sorted.length <= shown);
+  $('foot').textContent = ALL.length + ' saisie(s) au total · données en temps réel';
+}
+$('moreBtn').addEventListener('click', () => { shown += PAGE; renderTable(); });
+
+/* ---------- CSV ---------- */
+function csvCell(v){ let s = String(v == null ? '' : v); if(/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; }
+$('csvBtn').addEventListener('click', () => {
+  const head = ['Date','Formulaire','Chantier','Client','Auteur','Conformes','Non-conformités','Sans objet','Taux de conformité (%)','Saisi le'];
+  const lines = [head.map(csvCell).join(';')].concat(VIEW.map(r => [fmtDate(rowDate(r)), r.form_name, r.chantier, r.client, r.auteur, r.good, r.bad, r.neutral, r.rate == null ? '' : String(r.rate).replace('.',','), fmtDateTime(r.created_at)].map(csvCell).join(';')));
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sitenor_saisies_' + new Date().toISOString().slice(0,10) + '.csv'; a.click(); URL.revokeObjectURL(a.href);
+});
+
+/* ---------- Rapport (PDF via impression) ---------- */
+function statusBadge(s, v){
+  if(s === 'nc') return '<span class="badge warn">'+esc(v)+'</span>';
+  if(s === 'ok') return '<span class="badge ok">'+esc(v)+'</span>';
+  if(s === 'so') return '<span class="badge so">'+esc(v)+'</span>';
+  return esc(v);
+}
+async function loadPhotos(ids){
+  const res = await Promise.all(ids.map(id => api({ action:'photo', id }).catch(() => null)));
+  const box = $('reportPhotos'); if(!box) return;
+  const urls = res.filter(r => r && r.ok).map(r => r.data);
+  if(!urls.length){ box.innerHTML = '<div class="empty-note">Photos indisponibles.</div>'; return; }
+  box.innerHTML = urls.map(u => '<img src="'+esc(u)+'" alt="Photo">').join('');
+}
+const VALEURS_FR = { 'C':'Conforme', 'NC':'Non conforme', 'SO':'Sans objet' };
+function stars(n){ return '<span style="color:#d99a1e">'+'★★★★★'.slice(0,n)+'</span><span style="color:var(--line-strong)">'+'★★★★★'.slice(n)+'</span> '+n+'/5'; }
+function openReport(id){
+  const r = ALL.find(x => x.id === id); if(!r) return;
+  const secs = r.payload?.sections || [];
+  const ncRows = [];
+  secs.forEach(s => (s.rows || []).forEach(row => { if(row.status === 'nc') ncRows.push({ sec:s.title, label:row.label, value:row.value }); }));
+
+  let body = '';
+  secs.forEach(s => {
+    const rows = (s.rows || []).map(row => {
+      const vide = '<span class="vide">Non renseigné</span>';
+      if(row.long) return '<div class="kv long"><span class="k">'+esc(row.label)+'</span><span class="v long">'+(row.empty ? vide : esc(row.value))+'</span></div>';
+      const v = row.empty ? vide : row.stars ? stars(row.num) : statusBadge(row.status, VALEURS_FR[row.value] || row.value);
+      return '<div class="kv"><span class="k">'+esc(row.label)+'</span><span class="v">'+v+'</span></div>'
+        + (row.comment ? '<div class="cmt">'+esc(row.comment)+'</div>' : '');
+    }).join('');
+    body += '<div class="sec"><h3>'+esc(s.title)+'</h3>'+rows+(s.comment ? '<div class="cmt"><b>Commentaires :</b> '+esc(s.comment)+'</div>' : '')+'</div>';
+  });
+
+  const m = r.payload?.meta || {};
+  const photoPaths = (r.payload?.photos || []).filter(Boolean);
+  const nPhotos = photoPaths.length;
+  $('reportView').innerHTML =
+    '<div class="report"><div class="report-bar"><button class="btn btn-ghost" id="rClose">← Retour</button><div style="display:flex;gap:8px;">'
+    + '<button class="btn btn-danger" id="rDel">Supprimer</button>'
+    + '<button class="btn" id="rPrint">Télécharger le PDF</button></div></div>'
+    + '<div class="sheet"><div class="brand">SATREL / SITENOR — Rapport</div><h1>'+esc(r.form_name)+'</h1>'
+    + '<div class="meta">'
+      + '<div><b>Date</b>'+fmtDate(rowDate(r))+'</div>'
+      + (r.chantier ? '<div><b>Chantier / lieu</b>'+esc(r.chantier)+'</div>' : '')
+      + (r.client ? '<div><b>Client</b>'+esc(r.client)+'</div>' : '')
+      + (r.auteur ? '<div><b>Auteur</b>'+esc(r.auteur)+'</div>' : '')
+      + (m.gravite ? '<div><b>Gravité / probabilité</b>'+esc(m.gravite)+' / '+esc(m.probabilite || '—')+'</div>' : '')
+    + '</div>'
+    + ((r.good + r.bad + r.neutral) > 0 ? '<div class="summary"><div class="tile ok"><div class="n">'+r.good+'</div><div class="l">Conformes</div></div><div class="tile warn"><div class="n">'+r.bad+'</div><div class="l">Non-conformités</div></div><div class="tile"><div class="n">'+r.neutral+'</div><div class="l">Sans objet</div></div><div class="tile"><div class="n">'+(r.rate == null ? '—' : String(r.rate).replace('.',',')+' %')+'</div><div class="l">Conformité</div></div></div>' : '')
+    + (ncRows.length ? '<div class="todo"><h3>Points à traiter ('+ncRows.length+')</h3><ul>'+ncRows.map(n => '<li><b>'+esc(n.sec)+'</b> — '+esc(n.label)+' : '+esc(VALEURS_FR[n.value] || n.value)+'</li>').join('')+'</ul></div>' : '')
+    + (nPhotos ? '<div class="sec"><h3>Photos ('+nPhotos+')</h3><div class="photos" id="reportPhotos"><div class="empty-note">Chargement des photos…</div></div></div>' : '')
+    + body
+    + '<div class="sheet-foot">Saisi le '+fmtDateTime(r.created_at)+' · Réf. '+esc(r.id)+'</div></div></div>';
+  show('reportView', true); $('reportView').scrollTop = 0;
+  if(nPhotos) loadPhotos(photoPaths);
+  $('rClose').addEventListener('click', () => show('reportView', false));
+  $('rPrint').addEventListener('click', () => { const t = document.title; document.title = 'Rapport ' + r.form_name + ' ' + (r.chantier || '') + ' ' + rowDate(r); window.print(); document.title = t; });
+  const del = $('rDel');
+  if(del) del.addEventListener('click', async () => {
+    if(!confirm('Supprimer cette saisie du Google Sheets ? (les photos vont dans la corbeille Google Drive)')) return;
+    const out = await api({ action:'delete', form_id: r.form_id, id }).catch(() => null);
+    if(!out || !out.ok){ alert('Suppression impossible.'); return; }
+    ALL = ALL.filter(x => x.id !== id); show('reportView', false); apply();
+  });
+}
+document.addEventListener('keydown', e => { if(e.key === 'Escape') show('reportView', false); });
+
+boot();
+</script>
+</body>
+</html>
