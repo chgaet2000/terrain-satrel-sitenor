@@ -1,0 +1,15 @@
+{
+  "name": "terrain-satrel-sitenor-mobile",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Enveloppe native (Android / iOS) de l'application Terrain SATREL/SITENOR",
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.3"
+  }
+}
