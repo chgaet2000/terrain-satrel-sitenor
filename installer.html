@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installer Terrain SATREL/SITENOR</title>
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#f3f1ea; --paper:#ffffff; --ink:#1c1a15; --ink-dim:#6b6558; --line:#dcd6c4;
+    --accent:#1f4e63; --accent-soft:#dbe8ec; --ok:#2f7d4f; --ok-soft:#dcefe1;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .sheet{ max-width:760px; margin:24px auto; background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:36px 40px; }
+  h1,h2{ font-family:'Barlow Condensed',sans-serif; text-transform:uppercase; letter-spacing:.02em; margin:0; }
+  .brand{ color:var(--accent); font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:.1em; text-transform:uppercase; font-size:14px; }
+  h1{ font-size:40px; line-height:1; margin-top:4px; }
+  .lead{ font-size:17px; color:var(--ink-dim); margin:8px 0 0; }
+  .qr-block{ display:flex; gap:28px; align-items:center; margin:28px 0 8px; padding:22px; border-radius:12px; background:var(--accent-soft); }
+  #qr{ flex:none; width:210px; height:210px; background:#fff; border-radius:8px; padding:10px; }
+  #qr svg{ width:100%; height:100%; display:block; }
+  .qr-text p{ margin:0 0 8px; font-size:15px; line-height:1.45; }
+  .url{ font-weight:600; color:var(--accent); word-break:break-all; font-size:15px; }
+  h2{ font-size:22px; color:var(--accent); margin:26px 0 10px; padding-bottom:4px; border-bottom:2px solid var(--accent); }
+  ol{ margin:0; padding-left:0; list-style:none; counter-reset:s; }
+  ol li{ counter-increment:s; position:relative; padding:8px 0 8px 46px; font-size:15.5px; line-height:1.45; }
+  ol li::before{ content:counter(s); position:absolute; left:0; top:6px; width:32px; height:32px; border-radius:50%; background:var(--accent); color:#fff; font-weight:600; display:flex; align-items:center; justify-content:center; font-size:15px; }
+  .key{ display:inline-block; padding:1px 8px; border-radius:6px; background:var(--ok-soft); color:var(--ok); font-weight:600; white-space:nowrap; }
+  .note{ margin-top:26px; padding:14px 16px; border-radius:10px; background:var(--bg); font-size:14px; line-height:1.5; color:var(--ink-dim); }
+  .note b{ color:var(--ink); }
+  .print{ display:block; margin:0 auto 30px; padding:12px 22px; border:none; border-radius:9px; background:var(--accent); color:#fff; font:600 15px 'IBM Plex Sans',sans-serif; cursor:pointer; }
+  @media (max-width:600px){
+    .sheet{ margin:0; border:none; border-radius:0; padding:24px 16px; }
+    h1{ font-size:32px; }
+    .qr-block{ flex-direction:column; text-align:center; }
+  }
+  @media print{
+    body{ background:#fff; }
+    .sheet{ margin:0; border:none; padding:0; max-width:none; }
+    .print{ display:none; }
+    @page{ size:A4; margin:16mm; }
+  }
+</style>
+</head>
+<body>
+<main class="sheet">
+  <div class="brand">SATREL / SITENOR — Prévention SSE</div>
+  <h1>Terrain SATREL/SITENOR</h1>
+  <p class="lead">Installez l’application sur votre téléphone pour remplir les formulaires terrain : audit terrain, retour d’expérience, remontée d’information (avec photo), PV de réception, pré job briefing, audit véhicule et causerie.</p>
+
+  <div class="qr-block">
+    <div id="qr" role="img" aria-label="QR code vers l’application Terrain SATREL/SITENOR"></div>
+    <div class="qr-text">
+      <p><b>Scannez ce QR code</b> avec l’appareil photo de votre téléphone.</p>
+      <p>Ou tapez l’adresse :</p>
+      <div class="url">chgaet2000.github.io/terrain-satrel-sitenor</div>
+    </div>
+  </div>
+
+  <h2>Téléphone Android</h2>
+  <ol>
+    <li>Scannez le QR code et ouvrez le lien dans <b>Chrome</b>.</li>
+    <li>Appuyez sur <span class="key">Installer</span> dans le bandeau vert en haut de la page.<br>
+      <small>Pas de bandeau ? Menu <b>⋮</b> en haut à droite, puis <b>« Installer l’application »</b> ou <b>« Ajouter à l’écran d’accueil »</b>.</small></li>
+    <li>L’icône <b>Terrain SATREL/SITENOR</b> apparaît sur l’écran d’accueil. Ouvrez désormais l’application depuis cette icône.</li>
+  </ol>
+
+  <h2>iPhone</h2>
+  <ol>
+    <li>Scannez le QR code et ouvrez le lien dans <b>Safari</b>.</li>
+    <li>Appuyez sur le bouton <b>Partager</b> (carré avec une flèche vers le haut).</li>
+    <li>Choisissez <b>« Sur l’écran d’accueil »</b>, puis <b>Ajouter</b>.</li>
+  </ol>
+
+  <div class="note">
+    <b>Aucun compte ni mot de passe n’est nécessaire.</b> Chaque formulaire envoyé est transmis automatiquement au responsable.
+    Sans réseau, la saisie est gardée sur le téléphone et envoyée dès le retour de la connexion.
+    L’application se met à jour toute seule.
+  </div>
+</main>
+<button class="print" onclick="window.print()">Imprimer cette notice</button>
+
+<script>
+  try{
+    const q = qrcode(0, 'M');
+    q.addData('https://chgaet2000.github.io/terrain-satrel-sitenor/');
+    q.make();
+    const n = q.getModuleCount();
+    let d = '';
+    for(let r = 0; r < n; r++) for(let c = 0; c < n; c++) if(q.isDark(r, c)) d += 'M' + c + ' ' + r + 'h1v1h-1z';
+    document.getElementById('qr').innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + n + ' ' + n + '" shape-rendering="crispEdges"><path fill="#14202b" d="' + d + '"/></svg>';
+  }catch(e){
+    document.getElementById('qr').textContent = 'QR code indisponible : utilisez l’adresse ci-contre.';
+  }
+</script>
+</body>
+</html>
