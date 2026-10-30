@@ -1,0 +1,146 @@
+name: Android (APK + AAB)
+
+on:
+  workflow_dispatch:
+    inputs:
+      emulator_test:
+        description: "Tester l'APK sur un émulateur (captures d'écran)"
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - 'index.html'
+      - 'config.js'
+      - '.github/workflows/android.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RUN_NO: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Assembler les fichiers web
+        run: |
+          mkdir -p mobile/www
+          cp index.html config.js manifest.webmanifest icon-192.png icon-512.png apple-touch-icon.png mobile/www/
+
+      - name: Installer Capacitor
+        working-directory: mobile
+        run: npm install --no-audit --no-fund
+
+      - name: Créer le projet Android
+        working-directory: mobile
+        run: npx cap add android
+
+      - name: Générer les icônes et l'écran de démarrage
+        working-directory: mobile
+        run: npx capacitor-assets generate --android --assetPath assets
+
+      - name: Permissions, version et signature
+        working-directory: mobile
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's#</manifest>#    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n</manifest>#' "$M"
+
+          G=android/app/build.gradle
+          sed -E -i "s/versionCode[[:space:]]*=?[[:space:]]*[0-9]+/versionCode ${RUN_NO}/; s/versionName[[:space:]]*=?[[:space:]]*\"[^\"]*\"/versionName \"1.0.${RUN_NO}\"/" "$G"
+
+          echo "$KEYSTORE_B64" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/release.jks"
+          perl -0pi -e 's/(\n[ \t]*)buildTypes\s*\{/$1signingConfigs {$1    release {$1        storeFile file(System.getenv("KEYSTORE_PATH"))$1        storePassword System.getenv("KEYSTORE_PASSWORD")$1        keyAlias System.getenv("KEY_ALIAS")$1        keyPassword System.getenv("KEYSTORE_PASSWORD")$1    }$1}$1buildTypes {/; s/(buildTypes\s*\{\s*release\s*\{)/$1\n            signingConfig signingConfigs.release/' "$G"
+
+          echo "----- AndroidManifest.xml"; cat "$M"
+          echo "----- app/build.gradle"; cat "$G"
+
+      - name: Synchroniser
+        working-directory: mobile
+        run: npx cap sync android
+
+      - name: Compiler (APK + AAB signés)
+        working-directory: mobile/android
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: ./gradlew --no-daemon assembleRelease bundleRelease
+
+      - name: Vérifier et renommer
+        run: |
+          set -euo pipefail
+          APK=$(find mobile/android/app/build/outputs/apk/release -name '*.apk' | head -1)
+          AAB=$(find mobile/android/app/build/outputs/bundle/release -name '*.aab' | head -1)
+          cp "$APK" Terrain-SATREL-SITENOR.apk
+          cp "$AAB" Terrain-SATREL-SITENOR.aab
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs Terrain-SATREL-SITENOR.apk | head -5
+          "$BT/aapt2" dump badging Terrain-SATREL-SITENOR.apk | grep -E "^package|uses-permission|application-label:|targetSdkVersion|versionCode"
+          ls -l Terrain-SATREL-SITENOR.apk Terrain-SATREL-SITENOR.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: |
+            Terrain-SATREL-SITENOR.apk
+            Terrain-SATREL-SITENOR.aab
+
+      - name: Publier la version (lien de téléchargement fixe)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view android >/dev/null 2>&1 || gh release create android --title "Application Android" --notes "Application Android Terrain SATREL/SITENOR" --latest=false
+          gh release upload android Terrain-SATREL-SITENOR.apk Terrain-SATREL-SITENOR.aab --clobber
+          gh release edit android --notes "Version 1.0.${RUN_NO} — construite le $(date -u +%d/%m/%Y)"
+
+  emulator:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.emulator_test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: android
+
+      - name: Activer KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: bash mobile/ci/emulator-test.sh
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captures-emulateur
+          path: shots/
