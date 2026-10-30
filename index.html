@@ -579,6 +579,58 @@ const STEPS_AUDIT_TERRAIN = [
 ];
 
 /* ============================================================
+   FORM 1 bis — Audit sûreté / radioprotection (sorti de l'audit terrain)
+   ============================================================ */
+const STEPS_SURETE_RADIO = [
+  { id:'identification', kind:'fields', title:'Identification', eyebrow:'Étape 1',
+    help:'Informations générales de l’audit.',
+    fields:[
+      {key:'entreprise', label:'Entreprise', type:'checkbox-options', options:ENTREPRISES, required:true},
+      {key:'auditeurs', label:'Auditeur(s)', type:'text', required:true},
+      {key:'date_audit', label:'Audit réalisé le', type:'date', today:true, required:true},
+      {key:'chantier', label:'Chantier / Client', type:'text', required:true},
+      {key:'responsable', label:'Nom du responsable sur site', type:'text'},
+      {key:'personnes_auditees', label:'Noms des personnes auditées', type:'textarea'},
+    ]
+  },
+  { id:'surete', kind:'grid', title:'Sûreté', eyebrow:'Étape 2', options:CNC, exclusive:true,
+    items:[
+      {key:'surete_dossier_bpe', label:'Dossier d’intervention BPE présent sur le chantier (LDA, DSI, MOP, gamme, plans…)'},
+      {key:'surete_organigramme', label:'Organigramme présent et à jour'},
+      {key:'surete_fiabilisation', label:'Respect des pratiques de fiabilisation — en citer 3'},
+      {key:'surete_regles_vitales', label:'Connaissance des règles vitales — en citer 3'},
+      {key:'surete_fme', label:'Maîtrise du risque FME'},
+      {key:'surete_ecarts', label:'Identification des écarts (+ reports)'},
+      {key:'surete_interruption', label:'Interruption / reprise de tâche'},
+      {key:'surete_balisage', label:'Balisage de la zone d’intervention + FIC'},
+      {key:'surete_pv', label:'PV d’ouverture / fermeture renseigné'},
+      {key:'surete_permis_feu', label:'Permis de feu validé'},
+      {key:'surete_anomalie_consignation', label:'Que faire en cas d’anomalie de consignation'},
+      {key:'surete_depart_feu', label:'Que faire en cas de départ de feu'},
+    ], commentKey:'surete_commentaires' },
+  { id:'radioprotection', kind:'grid', title:'Radioprotection', eyebrow:'Étape 3', options:CNC, exclusive:true,
+    items:[
+      {key:'radio_rtr_suivi', label:'Tableau de suivi des RTR à jour'},
+      {key:'radio_dosimetrie', label:'Suivi de la dosimétrie à jour'},
+      {key:'radio_dosimetres_rack', label:'Dosimètres passifs non utilisés rangés sur le rack dédié'},
+      {key:'radio_previsionnel', label:'Connaissance du prévisionnel dosimétrique / objectifs de dose / seuils d’intervention'},
+      {key:'radio_actions_rtr', label:'Prise en compte des actions de radioprotection prévues dans le RTR'},
+      {key:'radio_rtr_edp', label:'RTR (EDP) valide et renseigné, formulaire ZO nominatif éventuel, autorisation de travail en ZC valide'},
+      {key:'radio_port_passif', label:'Port du dosimètre passif du mois ou trimestre ZO nominatif'},
+      {key:'radio_port_operationnel', label:'Port du dosimètre opérationnel (électronique)'},
+      {key:'radio_radiametre', label:'Présence du radiamètre sur le chantier'},
+    ], commentKey:'radio_commentaires' },
+  { id:'observations', kind:'fields', title:'Observations / Actions d’amélioration', eyebrow:'Étape 4',
+    fields:[
+      {key:'actions_immediates', label:'Commentaires concernant l’audit — actions immédiates', type:'textarea'},
+      {key:'actions_a_reporter', label:'Des actions sont-elles à reporter dans le plan d’action ?', type:'radio-options', options:OUINON},
+      {key:'actions_plan', label:'Détail des actions à reporter dans le plan d’action', type:'textarea', showIf:{key:'actions_a_reporter', equals:'Oui'}},
+    ]
+  },
+  { id:'review', kind:'review', title:'Récapitulatif', eyebrow:'Étape 5' },
+];
+
+/* ============================================================
    FORM 2 — Retour d'Expérience SITENOR / SATREL
    ============================================================ */
 function rexGroup(id, eyebrow, title, items){
@@ -816,6 +868,8 @@ const STEPS_CAUSERIE = [
 const FORMS = [
   { id:'audit-terrain', name:'Audit terrain', desc:'Audit SSE sur chantier (2026)', emoji:'🦺',
     steps: STEPS_AUDIT_TERRAIN },
+  { id:'surete-radio', name:'Audit sûreté / radioprotection', desc:'Sûreté nucléaire et radioprotection sur chantier', emoji:'☢️',
+    steps: STEPS_SURETE_RADIO },
   { id:'rex', name:'Retour d’expérience', desc:'Bilan de fin d’opération', emoji:'📋',
     steps: STEPS_REX },
   { id:'remontee', name:'Remontée d’information', desc:'Signaler un évènement, avec photo', emoji:'📣',
